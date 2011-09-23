@@ -644,6 +644,25 @@ module Arel
         }
       end
 
+      it 'can have a non table as rhs' do
+        users   = Table.new :users
+        logs    = Table.new :logs
+
+        counts = logs.from(logs).
+          group(logs[:user_id]).
+          project(
+            logs[:user_id].as("user_id"), 
+            logs[:user_id].count.as("count")
+          ).as("counts")
+
+        j = users.join(counts).on(counts[:user_id].eq(10))
+
+        j.to_sql.must_be_like  %{
+          SELECT FROM "users" INNER JOIN (SELECT "logs"."user_id" AS user_id, COUNT("logs"."user_id") AS count FROM "logs" GROUP BY "logs"."user_id") counts ON counts.user_id = 10"
+          
+        }
+      end
+
       it 'returns outer join sql' do
         table   = Table.new :users
         aliaz   = table.alias
